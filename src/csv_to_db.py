@@ -29,20 +29,15 @@ def process_hotel_name(hotel_name):
 
 
 def main():
-    # create a database connection
     conn = create_connection(database)
-
-    # drop the existing hotels table if it exists
     with conn:
         conn.execute("DROP TABLE IF EXISTS hotels")
 
-    # create hotels table
     if conn is not None:
         create_table(conn, sql_create_hotels_table)
     else:
         print("Error! cannot create the database connection.")
 
-    # read CSV files and insert data into the database
     cities = ["Beijing", "Dubai", "Chicago", "Las Vegas", "London", "Montreal", "New Delhi", "San Francisco", "Shanghai"]
     for city in cities:
         with open(f'csv/{city}.csv', 'r') as file:
@@ -65,7 +60,6 @@ def main():
                 )
                 insert_hotel(conn, hotel)
 
-    # close the connection
     conn.close()
 
 
