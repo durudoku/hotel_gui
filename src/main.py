@@ -1,78 +1,135 @@
-import tkinter as tk  # Import standard tkinter for Listbox and IntVar
-from tkinter import ttk
-from tkinter import *
-import tkinter.font as tkFont
-from turtledemo.__main__ import font_sizes
+import tkinter as tk
+from tkinter import ttk, messagebox
 
-from customtkinter import CTkFont
+from database import create_connection, select_hotels_by_city
 
 
 class MainPageGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("Hotel Selection Robot")
-        self.root.geometry("700x350+100+100")  # Window size and position
+        self.root.geometry("1400x700+50+50")
+        self.hotels = []
+        self.attributes = {
+            "Cleanliness": 0.115889,
+            "Room": 0.114399,
+            "Service": 0.116970,
+            "Location": 0.110330,
+            "Value": 0.111267,
+            "Safety": 0.104538,
+            "Comfort": 0.108339,
+            "Transportation": 0.110073,
+            "Noise": 0.108196
+        }
+        self.attribute_indices = {
+            "Cleanliness": 3,
+            "Room": 4,
+            "Service": 5,
+            "Location": 6,
+            "Value": 7,
+            "Safety": 8,
+            "Comfort": 9,
+            "Transportation": 10,
+            "Noise": 11
+        }
+
         self.setup_ui()
 
     def setup_ui(self):
-        base_width = 800
-
-        self.city_combo = ttk.Combobox(self.root, values=["Beijing", "Chicago", "Dubai", "Las Vegas", "London", "Montreal", "New Delhi", "New York City", "San Francisco", "Shanghai"], state='readonly', width=20)
+        self.city_combo = ttk.Combobox(self.root, values=["Beijing", "Dubai", "Chicago", "Las Vegas",
+                                                          "London", "Montreal", "New Delhi",
+                                                          "San Francisco", "Shanghai"], state='readonly', width=20)
         self.city_combo.set("Beijing")
         self.city_combo.place(x=30, y=10)
 
-        search_button = ttk.Button(self.root, text="Search", width=50)
-        search_button.place(x=200, y=10)
+        search_button = ttk.Button(self.root, text="Search", width=30, command=self.search_hotels)
+        search_button.place(x=200, y=9)
 
-        # Center Section for checkboxes
-        frame_center = ttk.Frame(self.root, height=250, width=140)
-        frame_center.place(x=0, y=60)
+        pick_label = tk.Label(self.root, text="Pick max. three attributes", font=('Helvetica', 9))
+        pick_label.place(x=30, y=42)
 
-        attributes = ["Cleanliness", "Room", "Service", "Location", "Value", "Safety", "Comfort", "Transportation", "Noise"]
         self.vars = []
-        checkbox_y = 10
-        for attribute in attributes:
-            var = tk.IntVar()  # Use standard IntVar
-            checkbox = ttk.Checkbutton(frame_center, text=attribute, variable=var, command=lambda v=var: self.check_limit(v), width=200)
-            checkbox.place(x=10, y=checkbox_y)
-            checkbox_y += 35
+        checkbox_y = 70
+
+        for attribute in self.attributes:
+            var = tk.IntVar()
+            checkbox = ttk.Checkbutton(self.root, text=attribute, variable=var,
+                                       command=lambda v=var: self.check_limit(v), width=15)
+            checkbox.place(x=30, y=checkbox_y)
+            checkbox_y += 25
             self.vars.append(var)
 
-        sample_hotels = [
-            "Hotel California", "Grand Plaza Resort", "Ocean View Inn", "Mountain Retreat Hotel",
-            "Urban Boutique Hotel", "Cozy Cottage B&B", "Luxury City Center Suite", "Airport Gateway Hotel",
-            "Beachside Bungalow", "Historic Downtown Hostel", "Skyline Tower Suites", "Riverside Grand Hotel",
-            "Cityscape Luxury Apartments", "Golden Horizon Villas", "Silver Sands Resort", "Oasis Palm Hotel",
-            "Blue Lagoon Getaway", "Starlight Boutique Hotel", "Harmony Retreat and Spa", "Sunset Marina Resort",
-            "Crystal Lake Cabins", "Regal Manor Inn", "Imperial Garden Hotel", "Metropolitan Park Hotel",
-            "Whispering Pines Lodging", "Coral Beach Hotel", "Rainforest Eco-Lodge", "Gateway Urban Hotel",
-            "Continental Suites", "Sapphire Bay Resort", "Hilltop Heritage Inn", "Tranquil Nights B&B",
-            "Emerald City Hotel", "Royal Oak Resort & Spa", "Highland Mountain Resort"
-        ]
+        self.tree = ttk.Treeview(self.root, columns=[], show='headings', height=20)
+        self.tree.place(x=200, y=42, width=1170, height=600)
 
-        frame_list = ttk.Frame(self.root, height=250, width=int(base_width / 2))
-        frame_list.place(x=150, y=60)
-
-        self.listbox = tk.Listbox(frame_list, width=50, height=13, font='Arial')
-        self.listbox.place(x=10, y=10)
-
-        # Insert sample data into the listbox
-        sample_hotels = ["Hotel California", "Grand Plaza Resort", "Ocean View Inn", "Mountain Retreat Hotel",
-                         "Urban Boutique Hotel", "Cozy Cottage B&B", "Luxury City Center Suite",
-                         "Airport Gateway Hotel", "Beachside Bungalow", "Historic Downtown Hostel"]
-
-        for hotel in sample_hotels:
-            self.listbox.insert(tk.END, hotel)
-
-
+        scrollbar = tk.Scrollbar(self.root, orient="vertical", command=self.tree.yview)
+        scrollbar.place(x=1370, y=42, height=600)
+        self.tree.configure(yscroll=scrollbar.set)
 
     def check_limit(self, current_var):
-        # Count how many checkboxes are checked
         count = sum(v.get() for v in self.vars)
         if count > 3:
-            current_var.set(0)  # Uncheck the box if the limit is exceeded
+            current_var.set(0)
 
-# Create the main window and pass it to the MainPageGUI class
+    def search_hotels(self):
+        city = self.city_combo.get()
+        selected_attributes = [attr for attr, var in zip(self.attributes, self.vars) if var.get()]
+
+        if len(selected_attributes) == 0:
+            messagebox.showerror("Selection Error", "Please select at least one attribute.")
+            return
+        elif len(selected_attributes) > 3:
+            messagebox.showerror("Selection Error", "Please select up to 3 attributes.")
+            return
+
+        conn = create_connection("hotels.db")
+        self.hotels = select_hotels_by_city(conn, city)
+        conn.close()
+
+        if self.hotels is None:
+            self.hotels = []
+
+        if not self.hotels:
+            messagebox.showinfo("No Results", "No hotels found for the selected city.")
+            return
+
+        self.hotels = self.calculate_scores(self.hotels, selected_attributes)
+
+        self.hotels.sort(key=lambda x: x[-1], reverse=True)
+        self.display_results()
+
+    def calculate_scores(self, hotels, selected_attributes):
+        coefficients = self.attributes
+        scored_hotels = []
+        for hotel in hotels:
+            score = sum(float(hotel[self.attribute_indices[attr]]) * coefficients[attr] for attr in selected_attributes)
+            scored_hotels.append(list(hotel) + [score])  # Convert tuple to list before appending the score
+        return scored_hotels
+
+    def display_results(self):
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+
+        # Define all columns to be displayed
+        columns = ['Hotel Name'] + list(self.attributes.keys())
+        self.tree.config(columns=columns)
+
+        # Set the width for the "Hotel Name" column and the rest of the columns
+        self.tree.heading('Hotel Name', text='Hotel Name', anchor='w')
+        self.tree.column('Hotel Name', anchor='w', width=200)  # Wider width for hotel name
+
+        for col in self.attributes.keys():
+            self.tree.heading(col, text=col, anchor='w')
+            self.tree.column(col, anchor='w', width=20)  # Fixed width for other columns
+
+        for hotel in self.hotels:
+            values = [hotel[2]]  # Hotel name is at index 2
+            for attr in self.attributes.keys():
+                index = self.attribute_indices[attr]  # Correct index for each attribute
+                values.append(f"{float(hotel[index]):.2f}")
+            self.tree.insert('', 'end', values=values)
+
+
 root = tk.Tk()
 app = MainPageGUI(root)
 root.mainloop()
