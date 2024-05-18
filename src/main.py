@@ -114,18 +114,17 @@ class MainPageGUI:
         columns = ['Hotel Name'] + list(self.attributes.keys())
         self.tree.config(columns=columns)
 
-        # Set the width for the "Hotel Name" column and the rest of the columns
         self.tree.heading('Hotel Name', text='Hotel Name', anchor='w')
         self.tree.column('Hotel Name', anchor='w', width=200)  # Wider width for hotel name
 
         for col in self.attributes.keys():
             self.tree.heading(col, text=col, anchor='w')
-            self.tree.column(col, anchor='w', width=20)  # Fixed width for other columns
+            self.tree.column(col, anchor='w', width=20)
 
         for hotel in self.hotels:
-            values = [hotel[2]]  # Hotel name is at index 2
+            values = [hotel[2]]
             for attr in self.attributes.keys():
-                index = self.attribute_indices[attr]  # Correct index for each attribute
+                index = self.attribute_indices[attr]
                 values.append(f"{float(hotel[index]):.2f}")
             self.tree.insert('', 'end', values=values)
 

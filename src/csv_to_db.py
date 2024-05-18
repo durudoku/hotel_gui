@@ -21,7 +21,6 @@ CREATE TABLE IF NOT EXISTS hotels (
 );
 """
 
-
 def process_hotel_name(hotel_name):
     parts = hotel_name.split('_')[2:]  # Skip the first two parts
     capitalized_parts = [part.capitalize() for part in parts]
