@@ -1,49 +1,42 @@
 import csv
-import sqlite3
-from database import create_connection, create_table, insert_hotel
+from database import Database
 
-database = "hotels.db"
+class CSVToDB:
+    def __init__(self, db_file):
+        self.database = Database(db_file)
+        self.sql_create_hotels_table = """
+        CREATE TABLE IF NOT EXISTS hotels (
+            id integer PRIMARY KEY,
+            city text NOT NULL,
+            name text NOT NULL,
+            cleanliness real,
+            room real,
+            service real,
+            location real,
+            value real,
+            safety real,
+            comfort real,
+            transportation real,
+            noise real
+        );
+        """
 
-sql_create_hotels_table = """
-CREATE TABLE IF NOT EXISTS hotels (
-    id integer PRIMARY KEY,
-    city text NOT NULL,
-    name text NOT NULL,
-    cleanliness real,
-    room real,
-    service real,
-    location real,
-    value real,
-    safety real,
-    comfort real,
-    transportation real,
-    noise real
-);
-"""
+    def process_hotel_name(self, hotel_name):
+        parts = hotel_name.split('_')[2:]  # Skip the first two parts
+        capitalized_parts = [part.capitalize() for part in parts]
+        return ' '.join(capitalized_parts)
 
-def process_hotel_name(hotel_name):
-    parts = hotel_name.split('_')[2:]  # Skip the first two parts
-    capitalized_parts = [part.capitalize() for part in parts]
-    return ' '.join(capitalized_parts)
+    def create_table(self):
+        with self.database.conn:
+            self.database.conn.execute("DROP TABLE IF EXISTS hotels")
+            self.database.create_table(self.sql_create_hotels_table)
 
-
-def main():
-    conn = create_connection(database)
-    with conn:
-        conn.execute("DROP TABLE IF EXISTS hotels")
-
-    if conn is not None:
-        create_table(conn, sql_create_hotels_table)
-    else:
-        print("Error! cannot create the database connection.")
-
-    cities = ["Beijing", "Dubai", "Chicago", "Las Vegas", "London", "Montreal", "New Delhi", "San Francisco", "Shanghai"]
-    for city in cities:
+    def load_data(self, city):
         with open(f'csv/{city}.csv', 'r') as file:
             reader = csv.reader(file)
             next(reader)  # skip the header
             for row in reader:
-                hotel_name = process_hotel_name(row[0])
+                hotel_name = self.process_hotel_name(row[0])
                 hotel = (
                     city,
                     hotel_name,
@@ -57,10 +50,17 @@ def main():
                     float(row[9]),  # transportation_score
                     float(row[10])  # noise_score
                 )
-                insert_hotel(conn, hotel)
+                self.database.insert_hotel(hotel)
 
-    conn.close()
+    def main(self):
+        self.create_table()
+        cities = ["Beijing", "Dubai", "Chicago", "Las Vegas", "London", "Montreal", "New Delhi", "San Francisco",
+                  "Shanghai"]
+        for city in cities:
+            self.load_data(city)
+        self.database.close_connection()
 
 
 if __name__ == '__main__':
-    main()
+    csv_to_db = CSVToDB("hotels.db")
+    csv_to_db.main()

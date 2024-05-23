@@ -1,8 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-
-from database import create_connection, select_hotels_by_city
-
+from database import Database
 
 class MainPageGUI:
     def __init__(self, root):
@@ -12,12 +10,12 @@ class MainPageGUI:
         self.hotels = []
         self.attributes = {
             "Cleanliness": 0.115889,
-            "Room": 0.114399,
+            "Room": ((0.114399+0.24)/2),
             "Service": 0.116970,
             "Location": 0.110330,
             "Value": 0.111267,
             "Safety": 0.104538,
-            "Comfort": 0.108339,
+            "Comfort": ((0.108339+0.34)/2),
             "Transportation": 0.110073,
             "Noise": 0.108196
         }
@@ -33,12 +31,15 @@ class MainPageGUI:
             "Noise": 11
         }
 
+        # Initialize the Database object
+        self.db = Database("hotels.db")
+
         self.setup_ui()
 
     def setup_ui(self):
         self.city_combo = ttk.Combobox(self.root, values=["Beijing", "Dubai", "Chicago", "Las Vegas",
                                                           "London", "Montreal", "New Delhi",
-                                                          "San Francisco", "Shanghai"], state='readonly', width=20)
+                                                          "San Francisco", "Shanghai", "New York City"], state='readonly', width=20)
         self.city_combo.set("Beijing")
         self.city_combo.place(x=30, y=10)
 
@@ -82,9 +83,7 @@ class MainPageGUI:
             messagebox.showerror("Selection Error", "Please select up to 3 attributes.")
             return
 
-        conn = create_connection("hotels.db")
-        self.hotels = select_hotels_by_city(conn, city)
-        conn.close()
+        self.hotels = self.db.select_hotels_by_city(city)
 
         if self.hotels is None:
             self.hotels = []
